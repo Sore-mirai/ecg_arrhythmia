@@ -127,12 +127,52 @@
         <!-- Legend -->
         <div class="sidebar-section">
             <h3>Classification Legend</h3>
-            <div style="font-size:12px; line-height:2">
-                <span style="color:#4caf50">●</span> <strong>N</strong> — Normal Sinus Rhythm<br>
-                <span style="color:#42a5f5">●</span> <strong>S</strong> — Supraventricular Ectopic<br>
-                <span style="color:#ef5350">●</span> <strong>V</strong> — Ventricular Ectopic<br>
-                <span style="color:#ff9800">●</span> <strong>F</strong> — Fusion Beat<br>
-                <span style="color:#ab47bc">●</span> <strong>Q</strong> — Unknown / Paced<br>
+            <div class="legend-cards">
+                <div class="legend-card">
+                    <div class="legend-card-header">
+                        <span class="legend-dot" style="background:#4caf50"></span>
+                        <strong>N</strong> — Normal Sinus Rhythm
+                    </div>
+                    <div class="legend-card-body">
+                        A healthy, regular heartbeat controlled by the heart’s natural pacemaker (sinus node). Rate is typically 60–100 bpm at rest.
+                    </div>
+                </div>
+                <div class="legend-card">
+                    <div class="legend-card-header">
+                        <span class="legend-dot" style="background:#42a5f5"></span>
+                        <strong>S</strong> — Supraventricular Ectopic
+                    </div>
+                    <div class="legend-card-body">
+                        An extra or premature beat originating from the upper chambers (atria). Often feels like a skipped beat or flutter. Usually benign but may need monitoring if frequent.
+                    </div>
+                </div>
+                <div class="legend-card">
+                    <div class="legend-card-header">
+                        <span class="legend-dot" style="background:#ef5350"></span>
+                        <strong>V</strong> — Ventricular Ectopic
+                    </div>
+                    <div class="legend-card-body">
+                        An abnormal beat from the lower chambers (ventricles). Appears as a wide, unusual complex on ECG. Occasional ones are common; frequent ones need clinical review.
+                    </div>
+                </div>
+                <div class="legend-card">
+                    <div class="legend-card-header">
+                        <span class="legend-dot" style="background:#ff9800"></span>
+                        <strong>F</strong> — Fusion Beat
+                    </div>
+                    <div class="legend-card-body">
+                        A “hybrid” beat where a normal and ventricular impulse merge, producing a mixed shape. May indicate co-existing ventricular ectopy.
+                    </div>
+                </div>
+                <div class="legend-card">
+                    <div class="legend-card-header">
+                        <span class="legend-dot" style="background:#ab47bc"></span>
+                        <strong>Q</strong> — Unknown / Paced
+                    </div>
+                    <div class="legend-card-body">
+                        A pacemaker-generated beat (sharp spike before QRS) or an unclassifiable beat. Paced beats are expected in patients with implanted devices.
+                    </div>
+                </div>
             </div>
         </div>
     </aside>
@@ -209,6 +249,12 @@
                 <div class="xai-explanation" id="xaiExplanation">
                     <strong>Grad-CAM Interpretation:</strong> Red regions indicate high contribution to the prediction.
                 </div>
+
+                <!-- Detailed region breakdown -->
+                <div id="xaiRegions" class="xai-regions" style="display:none"></div>
+
+                <!-- Clinical context card -->
+                <div id="xaiClinical" class="xai-clinical" style="display:none"></div>
             </div>
 
             <!-- Probability Distribution -->

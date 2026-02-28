@@ -106,6 +106,13 @@ function setupEventListeners() {
         state.startSample = parseInt(e.target.value) || 0;
     });
     document.getElementById("btnBackToStream").addEventListener("click", backToStream);
+
+    // Legend card accordion
+    document.querySelectorAll(".legend-card-header").forEach(header => {
+        header.addEventListener("click", () => {
+            header.closest(".legend-card").classList.toggle("open");
+        });
+    });
 }
 
 function onRecordChange(e) {
@@ -216,8 +223,7 @@ function showResults(data) {
     renderProbBars(data.probabilities);
 
     // XAI explanation
-    document.getElementById("xaiExplanation").innerHTML =
-        `<strong>Grad-CAM Interpretation:</strong> ${data.explanation}`;
+    renderXAIExplanation(data.explanation);
 
     // Comparison view
     renderComparisonCharts(data.signal, data.class_name);
@@ -281,6 +287,71 @@ function showAlert(level, message) {
     const icons = { normal: "✓", arrhythmia: "⚡", uncertain: "⚠" };
     banner.innerHTML = `<span class="alert-icon">${icons[level] || "●"}</span><span>${message}</span>`;
     banner.style.display = "flex";
+}
+
+function renderXAIExplanation(explanation) {
+    // explanation is now an object: { summary, regions[], clinical_note }
+    if (typeof explanation === "string") {
+        // Fallback for legacy string format
+        document.getElementById("xaiExplanation").innerHTML =
+            `<strong>Grad-CAM Interpretation:</strong> ${explanation}`;
+        document.getElementById("xaiRegions").style.display = "none";
+        document.getElementById("xaiClinical").style.display = "none";
+        return;
+    }
+
+    // Summary
+    document.getElementById("xaiExplanation").innerHTML =
+        `<strong>🔍 What the AI Sees:</strong> ${explanation.summary}`;
+
+    // Region breakdown chips
+    const regionsEl = document.getElementById("xaiRegions");
+    if (explanation.regions && explanation.regions.length > 0) {
+        let html = '<div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;">Attention Regions</div>';
+        explanation.regions.forEach(r => {
+            html += `
+                <div class="xai-region-chip">
+                    <span class="region-badge">${r.peak_attention}%</span>
+                    <div>
+                        <span class="region-component">${r.component}</span>
+                        <span style="color:var(--text-muted); font-size:11px; font-family:'JetBrains Mono',monospace;">(${r.time})</span>
+                        <br>
+                        <span class="region-desc">${r.component_description}</span>
+                    </div>
+                </div>
+            `;
+        });
+        regionsEl.innerHTML = html;
+        regionsEl.style.display = "flex";
+    } else {
+        regionsEl.style.display = "none";
+    }
+
+    // Clinical context
+    const clinicalEl = document.getElementById("xaiClinical");
+    const ctx = explanation.clinical_note;
+    if (ctx) {
+        const riskColor = ctx.risk_level?.toLowerCase().includes("none")
+            ? "background:#e8f5e9; color:#2e7d32"
+            : ctx.risk_level?.toLowerCase().includes("benign")
+            ? "background:#e3f2fd; color:#1565c0"
+            : "background:#fff3e0; color:#e65100";
+
+        clinicalEl.innerHTML = `
+            <div class="xai-clinical-title">🩺 Clinical Context</div>
+            <dl>
+                <dt>What does this mean?</dt>
+                <dd>${ctx.what_it_means}</dd>
+                <dt>What does the model look for?</dt>
+                <dd>${ctx.what_model_looks_for}</dd>
+                <dt>Risk level</dt>
+                <dd><span class="xai-risk-tag" style="${riskColor}">${ctx.risk_level}</span></dd>
+            </dl>
+        `;
+        clinicalEl.style.display = "block";
+    } else {
+        clinicalEl.style.display = "none";
+    }
 }
 
 function hideResults() {
