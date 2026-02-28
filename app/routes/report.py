@@ -245,7 +245,25 @@ def generate_pdf_report(prediction_result, record_id="Unknown"):
     # ── XAI Explanation ──
     elements.append(Paragraph("Model Explanation (Grad-CAM)", heading_style))
     explanation = prediction_result.get("explanation", "No explanation available.")
-    elements.append(Paragraph(explanation, body_style))
+    if isinstance(explanation, dict):
+        # New structured explanation format
+        summary = explanation.get("summary", "").replace("<strong>", "<b>").replace("</strong>", "</b>")
+        elements.append(Paragraph(summary, body_style))
+        # Region details
+        for region in explanation.get("regions", []):
+            region_text = (
+                f"<b>{region['component']}</b> ({region['time']}) — "
+                f"{region['component_description']} — Attention: {region['peak_attention']}%"
+            )
+            elements.append(Paragraph(region_text, body_style))
+        # Clinical context
+        ctx = explanation.get("clinical_note", {})
+        if ctx:
+            elements.append(Spacer(1, 6))
+            elements.append(Paragraph(f"<b>What this means:</b> {ctx.get('what_it_means', '')}", body_style))
+            elements.append(Paragraph(f"<b>Risk level:</b> {ctx.get('risk_level', '')}", body_style))
+    else:
+        elements.append(Paragraph(str(explanation), body_style))
     elements.append(Spacer(1, 15))
 
     # ── Disclaimer ──

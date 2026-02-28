@@ -653,6 +653,99 @@ input[type="range"]::-webkit-slider-thumb:hover {
     color: var(--accent);
 }
 
+/* ── XAI Region Breakdown ── */
+.xai-regions {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.xai-region-chip {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-left: 3px solid #ef5350;
+    border-radius: var(--radius-xs);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.xai-region-chip .region-badge {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    background: #fce4ec;
+    color: #c62828;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+}
+
+.xai-region-chip .region-component {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.xai-region-chip .region-desc {
+    color: var(--text-secondary);
+}
+
+/* ── XAI Clinical Context ── */
+.xai-clinical {
+    margin-top: 10px;
+    padding: 16px 18px;
+    background: #f8fffe;
+    border: 1px solid rgba(46, 125, 50, 0.15);
+    border-left: 3px solid var(--success);
+    border-radius: var(--radius-xs);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.xai-clinical-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--success);
+    margin-bottom: 8px;
+}
+
+.xai-clinical dl {
+    margin: 0;
+}
+
+.xai-clinical dt {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.xai-clinical dt:first-child {
+    margin-top: 0;
+}
+
+.xai-clinical dd {
+    margin-left: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.xai-risk-tag {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
 /* ══════════════════════════════
    STREAM TIMELINE
    ══════════════════════════════ */
@@ -661,6 +754,64 @@ input[type="range"]::-webkit-slider-thumb:hover {
     gap: 4px;
     flex-wrap: wrap;
     margin-top: 12px;
+}
+
+/* ══════════════════════════════
+   LEGEND CARDS
+   ══════════════════════════════ */
+.legend-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.legend-card {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xs);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.legend-card:hover {
+    border-color: var(--border);
+    box-shadow: var(--shadow);
+}
+
+.legend-card-header {
+    padding: 7px 10px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--bg-input);
+}
+
+.legend-card-header:hover {
+    background: var(--border-light);
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.legend-card-body {
+    padding: 0 10px;
+    max-height: 0;
+    overflow: hidden;
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.legend-card.open .legend-card-body {
+    padding: 8px 10px;
+    max-height: 120px;
 }
 
 .stream-dot {
