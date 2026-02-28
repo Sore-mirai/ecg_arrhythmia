@@ -13,6 +13,7 @@ const state = {
     streamResults: [],
     normalTemplate: null,
     isLoading: false,
+    cameFromStream: false,
     modelLoaded: false,
     ecgChart: null,
     heatmapChart: null,
@@ -104,6 +105,7 @@ function setupEventListeners() {
     document.getElementById("sampleOffset").addEventListener("change", (e) => {
         state.startSample = parseInt(e.target.value) || 0;
     });
+    document.getElementById("btnBackToStream").addEventListener("click", backToStream);
 }
 
 function onRecordChange(e) {
@@ -222,6 +224,14 @@ function showResults(data) {
 
     // Enable report button
     document.getElementById("btnReport").disabled = false;
+
+    // Show "Back to Stream" if we came from a timeline click
+    const backBtn = document.getElementById("backToStream");
+    if (state.cameFromStream && state.streamResults.length > 0) {
+        backBtn.style.display = "block";
+    } else {
+        backBtn.style.display = "none";
+    }
 }
 
 function showStreamResults(data) {
@@ -253,8 +263,8 @@ function showStreamResults(data) {
         dot.addEventListener("click", () => {
             // Load this specific window's full prediction
             state.startSample = p.start_sample;
+            state.cameFromStream = true;
             document.getElementById("sampleOffset").value = p.start_sample;
-            setMode("single");
             runPrediction();
         });
         timeline.appendChild(dot);
@@ -278,6 +288,17 @@ function hideResults() {
     document.getElementById("resultsContainer").style.display = "none";
     document.getElementById("streamContainer").style.display = "none";
     document.getElementById("alertBanner").style.display = "none";
+    document.getElementById("backToStream").style.display = "none";
+    state.cameFromStream = false;
+}
+
+function backToStream() {
+    // Return to the stream view using cached results
+    state.cameFromStream = false;
+    document.getElementById("resultsContainer").style.display = "none";
+    document.getElementById("streamContainer").style.display = "block";
+    document.getElementById("alertBanner").style.display = "none";
+    document.getElementById("backToStream").style.display = "none";
 }
 
 // ── Charts ──
@@ -312,7 +333,8 @@ function renderECGChart(signal, heatmap, className, confidence) {
                 {
                     label: "Grad-CAM Attention",
                     data: heatmap.map((h, i) => h > 0.3 ? signal[i] : null),
-                    borderColor: "transparent",
+                    borderColor: "#ef5350",
+                    borderWidth: 2,
                     pointRadius: heatmap.map(h => h > 0.3 ? 2 : 0),
                     pointBackgroundColor: pointColors,
                     showLine: false,
@@ -326,11 +348,36 @@ function renderECGChart(signal, heatmap, className, confidence) {
                 title: {
                     display: true,
                     text: `ECG with Grad-CAM Overlay — ${className} (${(confidence * 100).toFixed(1)}%)`,
-                    color: "#e8eaf6",
+                    color: "#1e293b",
                     font: { size: 13, weight: "bold" },
                 },
                 legend: {
-                    labels: { color: "#9fa8da", font: { size: 11 } }
+                    labels: {
+                        color: "#475569",
+                        font: { size: 11 },
+                        usePointStyle: true,
+                        pointStyle: "rectRounded",
+                        generateLabels: (chart) => {
+                            return [
+                                {
+                                    text: "ECG Signal",
+                                    fillStyle: "#3949ab",
+                                    strokeStyle: "#3949ab",
+                                    lineWidth: 2,
+                                    pointStyle: "line",
+                                    datasetIndex: 0,
+                                },
+                                {
+                                    text: "Grad-CAM Attention",
+                                    fillStyle: "#ef5350",
+                                    strokeStyle: "#ef5350",
+                                    lineWidth: 2,
+                                    pointStyle: "circle",
+                                    datasetIndex: 1,
+                                },
+                            ];
+                        },
+                    },
                 },
                 tooltip: {
                     callbacks: {
@@ -346,14 +393,14 @@ function renderECGChart(signal, heatmap, className, confidence) {
             scales: {
                 x: {
                     display: true,
-                    title: { display: true, text: "Time (seconds)", color: "#5c6bc0" },
-                    ticks: { color: "#5c6bc0", maxTicksLimit: 10 },
-                    grid: { color: "rgba(255,255,255,0.03)" },
+                    title: { display: true, text: "Time (seconds)", color: "#475569" },
+                    ticks: { color: "#64748b", maxTicksLimit: 10 },
+                    grid: { color: "rgba(0,0,0,0.06)" },
                 },
                 y: {
-                    title: { display: true, text: "Amplitude (normalized)", color: "#5c6bc0" },
-                    ticks: { color: "#5c6bc0" },
-                    grid: { color: "rgba(255,255,255,0.03)" },
+                    title: { display: true, text: "Amplitude (normalized)", color: "#475569" },
+                    ticks: { color: "#64748b" },
+                    grid: { color: "rgba(0,0,0,0.06)" },
                 },
             },
         },
@@ -439,18 +486,18 @@ function getComparisonChartOptions(title) {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            title: { display: true, text: title, color: "#e8eaf6", font: { size: 11, weight: "bold" } },
+            title: { display: true, text: title, color: "#1e293b", font: { size: 11, weight: "bold" } },
             legend: { display: false },
         },
         scales: {
             x: {
                 display: true,
-                ticks: { color: "#5c6bc0", maxTicksLimit: 6, font: { size: 9 } },
-                grid: { color: "rgba(255,255,255,0.03)" },
+                ticks: { color: "#64748b", maxTicksLimit: 6, font: { size: 9 } },
+                grid: { color: "rgba(0,0,0,0.06)" },
             },
             y: {
-                ticks: { color: "#5c6bc0", font: { size: 9 } },
-                grid: { color: "rgba(255,255,255,0.03)" },
+                ticks: { color: "#64748b", font: { size: 9 } },
+                grid: { color: "rgba(0,0,0,0.06)" },
             },
         },
     };
@@ -487,7 +534,7 @@ function renderStreamChart(predictions) {
                 title: {
                     display: true,
                     text: "Real-Time Streaming — Confidence per Window",
-                    color: "#e8eaf6",
+                    color: "#1e293b",
                     font: { size: 13, weight: "bold" },
                 },
                 legend: { display: false },
@@ -502,14 +549,14 @@ function renderStreamChart(predictions) {
             },
             scales: {
                 x: {
-                    ticks: { color: "#5c6bc0", font: { size: 9 } },
+                    ticks: { color: "#64748b", font: { size: 9 } },
                     grid: { display: false },
                 },
                 y: {
                     min: 0, max: 100,
-                    title: { display: true, text: "Confidence %", color: "#5c6bc0" },
-                    ticks: { color: "#5c6bc0" },
-                    grid: { color: "rgba(255,255,255,0.03)" },
+                    title: { display: true, text: "Confidence %", color: "#475569" },
+                    ticks: { color: "#64748b" },
+                    grid: { color: "rgba(0,0,0,0.06)" },
                 },
             },
         },
@@ -519,7 +566,7 @@ function renderStreamChart(predictions) {
 // ── PDF Report Download ──
 async function downloadReport() {
     if (!state.prediction) return;
-    setLoading(true);
+    setLoading(true, "Generating Report...");
 
     try {
         const resp = await apiCall("/api/report", {
@@ -545,9 +592,15 @@ async function downloadReport() {
 }
 
 // ── UI Helpers ──
-function setLoading(loading) {
+function setLoading(loading, message) {
     state.isLoading = loading;
-    document.getElementById("loadingOverlay").style.display = loading ? "flex" : "none";
+    const overlay = document.getElementById("loadingOverlay");
+    overlay.style.display = loading ? "flex" : "none";
+    if (message) {
+        document.getElementById("loadingText").textContent = message;
+    } else {
+        document.getElementById("loadingText").textContent = "Analyzing ECG Signal...";
+    }
     document.querySelectorAll(".btn").forEach(b => {
         if (!b.classList.contains("mode-toggle")) b.disabled = loading;
     });

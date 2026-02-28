@@ -79,13 +79,13 @@ class ECGInferenceEngine:
         # Determine alert level
         if confidence < CONFIDENCE_THRESHOLD:
             alert_level = "uncertain"
-            alert_message = "⚠ Uncertain Prediction – Human Review Recommended"
+            alert_message = "Uncertain Prediction – Human Review Recommended"
         elif pred_class == 0:
             alert_level = "normal"
-            alert_message = "✓ Normal Sinus Rhythm Detected"
+            alert_message = "Normal Sinus Rhythm Detected"
         else:
             alert_level = "arrhythmia"
-            alert_message = f"⚡ Arrhythmia Detected: {CLASS_NAMES[pred_class]}"
+            alert_message = f"Arrhythmia Detected: {CLASS_NAMES[pred_class]}"
 
         # Generate explanation
         explanation = get_gradcam_explanation(heatmap, CLASS_NAMES[pred_class])

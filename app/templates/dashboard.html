@@ -141,11 +141,9 @@
     <main class="content">
 
         <!-- Loading Overlay -->
-        <div id="loadingOverlay" class="loading-overlay" style="display:none; position:fixed; inset:0; z-index:1000;">
-            <div style="text-align:center">
-                <div class="spinner"></div>
-                <div class="loading-text">Analyzing ECG Signal...</div>
-            </div>
+        <div id="loadingOverlay" class="loading-overlay">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Analyzing ECG Signal...</div>
         </div>
 
         <!-- Alert Banner -->
@@ -166,6 +164,13 @@
 
         <!-- ═══ SINGLE PREDICTION RESULTS ═══ -->
         <div id="resultsContainer" style="display:none">
+
+            <!-- Back to Stream Navigation -->
+            <div id="backToStream" class="back-to-stream" style="display:none">
+                <button class="btn btn-outline" id="btnBackToStream">
+                    ← Back to Stream Timeline
+                </button>
+            </div>
 
             <!-- Stats Row -->
             <div class="stats-row">
@@ -191,10 +196,10 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
-                        <span class="icon" style="background:rgba(57,73,171,0.2); color:#7986cb">📈</span>
+                        <span class="icon" style="background:#e3f2fd; color:#1565c0">📈</span>
                         ECG Signal with Grad-CAM Heatmap
                     </div>
-                    <span class="card-badge" style="background:rgba(198,40,40,0.15); color:#ef5350;">
+                    <span class="card-badge" style="background:#fce4ec; color:#c62828;">
                         XAI ENABLED
                     </span>
                 </div>
@@ -210,7 +215,7 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
-                        <span class="icon" style="background:rgba(46,125,50,0.2); color:#81c784">📊</span>
+                        <span class="icon" style="background:#e8f5e9; color:#2e7d32">📊</span>
                         Class Probability Distribution
                     </div>
                 </div>
@@ -223,10 +228,10 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
-                        <span class="icon" style="background:rgba(255,152,0,0.2); color:#ffb74d">⚖</span>
+                        <span class="icon" style="background:#fff3e0; color:#e65100">⚖</span>
                         Normal vs. Abnormal Comparison
                     </div>
-                    <span class="card-badge" style="background:rgba(2,119,189,0.15); color:#4fc3f7;">
+                    <span class="card-badge" style="background:#e3f2fd; color:#0277bd;">
                         COMPARISON MODE
                     </span>
                 </div>
@@ -257,10 +262,10 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
-                        <span class="icon" style="background:rgba(198,40,40,0.2); color:#ef5350">📡</span>
+                        <span class="icon" style="background:#fce4ec; color:#c62828">📡</span>
                         Simulated Real-Time Stream Analysis
                     </div>
-                    <span class="card-badge" style="background:rgba(46,125,50,0.15); color:#81c784;">
+                    <span class="card-badge" style="background:#e8f5e9; color:#2e7d32;">
                         LIVE SIMULATION
                     </span>
                 </div>
@@ -277,7 +282,7 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
-                        <span class="icon" style="background:rgba(57,73,171,0.2); color:#7986cb">🗓</span>
+                        <span class="icon" style="background:#e3f2fd; color:#1565c0">🗓</span>
                         Window-by-Window Timeline
                     </div>
                 </div>
