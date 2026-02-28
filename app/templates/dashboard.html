@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardioAI — Cardiac Arrhythmia Detection System</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- App CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header class="header">
+    <div class="header-left">
+        <div class="logo-icon">♥</div>
+        <div>
+            <h1>CardioAI</h1>
+            <div class="header-subtitle">Intelligent Cardiac Monitoring System</div>
+        </div>
+    </div>
+    <div class="header-right">
+        <div class="status-indicator">
+            <span class="status-dot offline" id="statusDot"></span>
+            <span id="statusText">Checking...</span>
+        </div>
+        <div class="status-indicator">
+            <span>🏥</span>
+            <span>Doctor's View</span>
+        </div>
+    </div>
+</header>
+
+<!-- ═══════════ MAIN LAYOUT ═══════════ -->
+<div class="main-container">
+
+    <!-- ─── Sidebar ─── -->
+    <aside class="sidebar">
+
+        <!-- Mode Toggle -->
+        <div class="sidebar-section">
+            <h3>Analysis Mode</h3>
+            <div class="mode-toggle">
+                <button id="modeSingle" class="active">Single Beat</button>
+                <button id="modeStream">Streaming</button>
+            </div>
+        </div>
+
+        <!-- Record Selection -->
+        <div class="sidebar-section">
+            <h3>ECG Record</h3>
+            <div class="control-group">
+                <label for="recordSelect">Patient Record</label>
+                <select id="recordSelect">
+                    <option value="">— Loading records... —</option>
+                </select>
+            </div>
+
+            <div id="singleControls">
+                <div class="control-group">
+                    <label for="sampleOffset">Start Sample</label>
+                    <input type="number" id="sampleOffset" value="0" min="0" step="360" placeholder="Sample offset">
+                    <span class="tooltip-text">Offset in samples (360 = 1 second)</span>
+                </div>
+            </div>
+
+            <div id="streamControls" style="display:none">
+                <div class="control-group">
+                    <label for="numWindows">Number of Windows</label>
+                    <input type="number" id="numWindows" value="30" min="5" max="200" step="5">
+                    <span class="tooltip-text">Sliding windows to analyze in stream</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Noise Slider -->
+        <div class="sidebar-section">
+            <h3>Signal Perturbation</h3>
+            <div class="control-group">
+                <label>Noise Injection Level</label>
+                <div class="slider-container">
+                    <span class="slider-value" id="noiseValue">0%</span>
+                    <input type="range" id="noiseSlider" class="noise-slider"
+                           min="0" max="100" value="0" step="5">
+                </div>
+                <span class="tooltip-text">Inject random Gaussian noise to test model robustness</span>
+            </div>
+        </div>
+
+        <!-- Confidence Threshold -->
+        <div class="sidebar-section">
+            <h3>Safety Threshold</h3>
+            <div class="control-group">
+                <label>Confidence Threshold</label>
+                <div class="slider-container">
+                    <span class="slider-value" id="thresholdValue">60%</span>
+                    <input type="range" id="thresholdSlider" class="threshold-slider"
+                           min="30" max="95" value="60" step="5">
+                </div>
+                <span class="tooltip-text">Predictions below this threshold trigger "Human Review" alerts</span>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="sidebar-section">
+            <h3>Actions</h3>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnAnalyze">
+                    🔍 Analyze Beat
+                </button>
+                <button class="btn btn-danger" id="btnStream">
+                    📡 Run Stream
+                </button>
+                <button class="btn btn-success" id="btnReport" disabled>
+                    📄 Download Report
+                </button>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="sidebar-section">
+            <h3>Classification Legend</h3>
+            <div style="font-size:12px; line-height:2">
+                <span style="color:#4caf50">●</span> <strong>N</strong> — Normal Sinus Rhythm<br>
+                <span style="color:#42a5f5">●</span> <strong>S</strong> — Supraventricular Ectopic<br>
+                <span style="color:#ef5350">●</span> <strong>V</strong> — Ventricular Ectopic<br>
+                <span style="color:#ff9800">●</span> <strong>F</strong> — Fusion Beat<br>
+                <span style="color:#ab47bc">●</span> <strong>Q</strong> — Unknown / Paced<br>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ─── Content Area ─── -->
+    <main class="content">
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay" style="display:none; position:fixed; inset:0; z-index:1000;">
+            <div style="text-align:center">
+                <div class="spinner"></div>
+                <div class="loading-text">Analyzing ECG Signal...</div>
+            </div>
+        </div>
+
+        <!-- Alert Banner -->
+        <div id="alertBanner" class="alert-banner" style="display:none"></div>
+
+        <!-- ═══ WELCOME SCREEN ═══ -->
+        <div id="welcomeScreen" class="welcome-screen">
+            <div class="welcome-icon">🫀</div>
+            <div class="welcome-title">Cardiac Arrhythmia Detection System</div>
+            <div class="welcome-subtitle">
+                Select a patient record from the sidebar and click
+                <strong>"Analyze Beat"</strong> to begin AI-assisted ECG analysis
+                with explainable predictions powered by Grad-CAM.
+                <br><br>
+                <em>MIT-BIH Arrhythmia Database · CNN-LSTM Architecture · Real-Time Streaming</em>
+            </div>
+        </div>
+
+        <!-- ═══ SINGLE PREDICTION RESULTS ═══ -->
+        <div id="resultsContainer" style="display:none">
+
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-card primary">
+                    <div class="stat-value" id="statClass">—</div>
+                    <div class="stat-label">Predicted Class</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value" id="statConfidence">—</div>
+                    <div class="stat-label">Confidence</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value" id="statNoise">0%</div>
+                    <div class="stat-label">Noise Level</div>
+                </div>
+                <div class="stat-card primary">
+                    <div class="stat-value" id="statWindow" style="font-size:18px">—</div>
+                    <div class="stat-label">Time Window</div>
+                </div>
+            </div>
+
+            <!-- ECG + Grad-CAM Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon" style="background:rgba(57,73,171,0.2); color:#7986cb">📈</span>
+                        ECG Signal with Grad-CAM Heatmap
+                    </div>
+                    <span class="card-badge" style="background:rgba(198,40,40,0.15); color:#ef5350;">
+                        XAI ENABLED
+                    </span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="ecgCanvas"></canvas>
+                </div>
+                <div class="xai-explanation" id="xaiExplanation">
+                    <strong>Grad-CAM Interpretation:</strong> Red regions indicate high contribution to the prediction.
+                </div>
+            </div>
+
+            <!-- Probability Distribution -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon" style="background:rgba(46,125,50,0.2); color:#81c784">📊</span>
+                        Class Probability Distribution
+                    </div>
+                </div>
+                <div class="prob-bars" id="probBars">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+
+            <!-- Comparison View (Normal vs Abnormal) -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon" style="background:rgba(255,152,0,0.2); color:#ffb74d">⚖</span>
+                        Normal vs. Abnormal Comparison
+                    </div>
+                    <span class="card-badge" style="background:rgba(2,119,189,0.15); color:#4fc3f7;">
+                        COMPARISON MODE
+                    </span>
+                </div>
+                <div class="comparison-grid">
+                    <div>
+                        <div class="comparison-label abnormal">
+                            <span>●</span> Current Patient ECG (Detected)
+                        </div>
+                        <div class="chart-container comparison">
+                            <canvas id="compAbnormalCanvas"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="comparison-label normal">
+                            <span>●</span> Reference Normal Heartbeat
+                        </div>
+                        <div class="chart-container comparison">
+                            <canvas id="compNormalCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ STREAM RESULTS ═══ -->
+        <div id="streamContainer" style="display:none">
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon" style="background:rgba(198,40,40,0.2); color:#ef5350">📡</span>
+                        Simulated Real-Time Stream Analysis
+                    </div>
+                    <span class="card-badge" style="background:rgba(46,125,50,0.15); color:#81c784;">
+                        LIVE SIMULATION
+                    </span>
+                </div>
+
+                <div id="streamSummary" style="margin-bottom:16px; font-size:14px; font-weight:600;">
+                    <!-- Filled by JS -->
+                </div>
+
+                <div class="chart-container" style="height:220px;">
+                    <canvas id="streamCanvas"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon" style="background:rgba(57,73,171,0.2); color:#7986cb">🗓</span>
+                        Window-by-Window Timeline
+                    </div>
+                </div>
+                <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+                    Click any window to view its full analysis in Single Beat mode.
+                </p>
+                <div class="stream-timeline" id="streamTimeline">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Footer -->
+<footer class="footer-disclaimer">
+    ⚕ ACADEMIC PROTOTYPE — This system is for research and educational purposes only. Not intended for clinical use.
+    All predictions should be reviewed by a qualified healthcare professional.
+</footer>
+
+<!-- App JS -->
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+</body>
+</html>
