@@ -31,6 +31,9 @@
             <span class="status-dot offline" id="statusDot"></span>
             <span id="statusText">Checking...</span>
         </div>
+        <button class="header-btn" id="btnShortcuts" title="Keyboard Shortcuts (?)">
+            ⌨
+        </button>
         <div class="status-indicator">
             <span>🏥</span>
             <span>Doctor's View</span>
@@ -305,6 +308,61 @@
         <!-- ═══ STREAM RESULTS ═══ -->
         <div id="streamContainer" style="display:none">
 
+            <!-- Smart Alert Banner (only fires on consecutive abnormal) -->
+            <div id="smartAlertBanner" class="smart-alert-banner" style="display:none"></div>
+
+            <!-- Risk Score + Quick Stats Row -->
+            <div class="stream-top-row">
+                <div class="risk-score-card" id="riskScoreCard">
+                    <div class="risk-gauge">
+                        <svg viewBox="0 0 120 120" class="risk-ring">
+                            <circle cx="60" cy="60" r="52" class="risk-ring-bg"/>
+                            <circle cx="60" cy="60" r="52" class="risk-ring-fill" id="riskRingFill"/>
+                        </svg>
+                        <div class="risk-score-value" id="riskScoreValue">0</div>
+                    </div>
+                    <div class="risk-score-label">RISK SCORE</div>
+                    <div class="risk-score-desc" id="riskScoreDesc">No data</div>
+                </div>
+
+                <div class="stream-quick-stats">
+                    <div class="stat-card primary">
+                        <div class="stat-value" id="streamStatTotal">0</div>
+                        <div class="stat-label">Total Beats</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-value" id="streamStatNormal">0%</div>
+                        <div class="stat-label">Normal</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-value" id="streamStatAbnormal">0%</div>
+                        <div class="stat-label">Abnormal</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-value" id="streamStatAvgConf">0%</div>
+                        <div class="stat-label">Avg Confidence</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confidence Trend Line Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon" style="background:#e3f2fd; color:#1565c0">📈</span>
+                        Beat-to-Beat Confidence Trend
+                    </div>
+                    <span class="card-badge" style="background:#e3f2fd; color:#0277bd;">
+                        TREND ANALYSIS
+                    </span>
+                </div>
+                <div class="chart-container" style="height:220px;">
+                    <canvas id="trendCanvas"></canvas>
+                </div>
+                <div class="trend-insight" id="trendInsight"></div>
+            </div>
+
+            <!-- Original stream bar chart -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
@@ -325,6 +383,7 @@
                 </div>
             </div>
 
+            <!-- Window Timeline -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
@@ -339,9 +398,77 @@
                     <!-- Filled by JS -->
                 </div>
             </div>
+
+            <!-- Session Summary Dashboard -->
+            <div class="card" id="sessionSummaryCard">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon" style="background:#e8f5e9; color:#2e7d32">📋</span>
+                        Session Summary
+                    </div>
+                    <button class="btn btn-outline" id="btnExportJSON" style="width:auto; padding:6px 14px; font-size:11px;">
+                        💾 Export JSON
+                    </button>
+                </div>
+
+                <div class="session-summary-grid" id="sessionSummaryGrid">
+                    <!-- Filled by JS -->
+                </div>
+
+                <!-- Class time distribution bar -->
+                <div class="class-distribution" id="classDistribution"></div>
+            </div>
         </div>
 
     </main>
+</div>
+
+<!-- Keyboard Shortcuts Modal -->
+<div id="shortcutsModal" class="shortcuts-modal" style="display:none">
+    <div class="shortcuts-modal-content">
+        <div class="shortcuts-modal-header">
+            <h2>⌨ Keyboard Shortcuts</h2>
+            <button class="shortcuts-close" id="shortcutsClose">&times;</button>
+        </div>
+        <div class="shortcuts-grid">
+            <div class="shortcut-item">
+                <kbd>Space</kbd>
+                <span>Analyze Next Beat</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>R</kbd>
+                <span>Run Stream</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>D</kbd>
+                <span>Download Report</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>N</kbd>
+                <span>Toggle Noise (+10%)</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>B</kbd>
+                <span>Back to Stream</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>Esc</kbd>
+                <span>Reset View</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>?</kbd>
+                <span>Show This Panel</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>1</kbd>
+                <span>Single Beat Mode</span>
+            </div>
+            <div class="shortcut-item">
+                <kbd>2</kbd>
+                <span>Streaming Mode</span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Footer -->
