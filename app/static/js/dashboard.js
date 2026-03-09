@@ -14,6 +14,9 @@ const state = {
     normalTemplate: null,
     isLoading: false,
     cameFromStream: false,
+    currentStreamWindowIndex: null,
+    uploadSessionId: null,
+    uploadSourceName: null,
     modelLoaded: false,
     ecgChart: null,
     heatmapChart: null,
@@ -108,6 +111,10 @@ function setupEventListeners() {
         state.startSample = parseInt(e.target.value) || 0;
     });
     document.getElementById("btnBackToStream").addEventListener("click", backToStream);
+    document.getElementById("btnUploadECG").addEventListener("click", uploadECGData);
+    document.getElementById("btnPrevWindow").addEventListener("click", goToPreviousStreamWindow);
+    document.getElementById("btnNextWindow").addEventListener("click", goToNextStreamWindow);
+    document.getElementById("btnFirstWindow").addEventListener("click", goToFirstStreamWindow);
     document.getElementById("btnExportJSON").addEventListener("click", exportSessionJSON);
     document.getElementById("btnShortcuts").addEventListener("click", toggleShortcuts);
     document.getElementById("shortcutsClose").addEventListener("click", toggleShortcuts);
@@ -127,6 +134,9 @@ function onRecordChange(e) {
     state.recordId = e.target.value;
     state.startSample = 0;
     document.getElementById("sampleOffset").value = 0;
+    state.uploadSessionId = null;
+    state.uploadSourceName = null;
+    document.getElementById("uploadStatus").textContent = "No uploaded ECG in use.";
     // Reset display
     hideResults();
 }
@@ -156,20 +166,53 @@ function setMode(mode) {
 }
 
 // ── Prediction (Single Window) ──
+async function uploadECGData() {
+    const input = document.getElementById("ecgUpload");
+    const files = input.files;
+    if (!files || files.length === 0) return showError("Please choose ECG file(s) first.");
+
+    const formData = new FormData();
+    Array.from(files).forEach((f) => formData.append("files", f));
+    formData.append("lead_index", "0");
+    formData.append("sampling_rate", "360");
+
+    setLoading(true, "Uploading ECG data...");
+    try {
+        const resp = await apiCall("/api/upload-signal", {
+            method: "POST",
+            body: formData,
+        });
+        const data = await resp.json();
+
+        state.uploadSessionId = data.upload_session_id;
+        state.uploadSourceName = data.source_name;
+        state.recordId = null;
+        document.getElementById("recordSelect").value = "";
+        document.getElementById("sampleOffset").value = 0;
+        state.startSample = 0;
+
+        document.getElementById("uploadStatus").textContent =
+            `Using upload: ${data.source_name} | ${data.total_samples} samples`;
+    } catch { /* handled by apiCall */ }
+
+    setLoading(false);
+}
+
 async function runPrediction() {
-    if (!state.recordId) return showError("Please select a record first.");
     if (!state.modelLoaded) return showError("Model not loaded. Train the model first.");
+    if (!state.recordId && !state.uploadSessionId) return showError("Please select a record or upload ECG first.");
 
     setLoading(true);
     try {
-        const data = await apiJson("/api/predict", {
+        const endpoint = state.uploadSessionId ? "/api/upload/predict" : "/api/predict";
+        const payload = state.uploadSessionId
+            ? { upload_session_id: state.uploadSessionId, start_sample: state.startSample, noise_level: state.noiseLevel }
+            : { record_id: state.recordId, start_sample: state.startSample, noise_level: state.noiseLevel };
+
+        const data = await apiJson(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                record_id: state.recordId,
-                start_sample: state.startSample,
-                noise_level: state.noiseLevel,
-            }),
+            body: JSON.stringify(payload),
         });
 
         state.prediction = data;
@@ -180,22 +223,22 @@ async function runPrediction() {
 
 // ── Stream Prediction ──
 async function runStream() {
-    if (!state.recordId) return showError("Please select a record first.");
     if (!state.modelLoaded) return showError("Model not loaded. Train the model first.");
+    if (!state.recordId && !state.uploadSessionId) return showError("Please select a record or upload ECG first.");
 
     const numWindows = parseInt(document.getElementById("numWindows").value) || 20;
     setLoading(true);
 
     try {
-        const data = await apiJson("/api/stream", {
+        const endpoint = state.uploadSessionId ? "/api/upload/stream" : "/api/stream";
+        const payload = state.uploadSessionId
+            ? { upload_session_id: state.uploadSessionId, noise_level: state.noiseLevel, num_windows: numWindows, start_offset: state.startSample }
+            : { record_id: state.recordId, noise_level: state.noiseLevel, num_windows: numWindows, start_offset: state.startSample };
+
+        const data = await apiJson(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                record_id: state.recordId,
-                noise_level: state.noiseLevel,
-                num_windows: numWindows,
-                start_offset: state.startSample,
-            }),
+            body: JSON.stringify(payload),
         });
 
         state.streamResults = data.predictions;
@@ -239,12 +282,16 @@ function showResults(data) {
     // Enable report button
     document.getElementById("btnReport").disabled = false;
 
-    // Show "Back to Stream" if we came from a timeline click
+    // Show stream navigation only when opened from a timeline click
     const backBtn = document.getElementById("backToStream");
-    if (state.cameFromStream && state.streamResults.length > 0) {
-        backBtn.style.display = "block";
-    } else {
-        backBtn.style.display = "none";
+    const showStreamNav = state.cameFromStream && state.streamResults.length > 0;
+    backBtn.style.display = showStreamNav ? "block" : "none";
+
+    if (showStreamNav) {
+        if (state.currentStreamWindowIndex === null) {
+            state.currentStreamWindowIndex = state.streamResults.findIndex((p) => p.start_sample === state.startSample);
+        }
+        updateStreamWindowNavigation();
     }
 }
 
@@ -268,6 +315,7 @@ function showStreamResults(data) {
     // Timeline dots
     const timeline = document.getElementById("streamTimeline");
     timeline.innerHTML = "";
+    state.currentStreamWindowIndex = null;
     preds.forEach((p, i) => {
         const dot = document.createElement("div");
         const cls = p.alert_level === "uncertain" ? "uncertain" : `class-${p.class_short}`;
@@ -276,6 +324,7 @@ function showStreamResults(data) {
         dot.title = `Window ${i + 1}: ${p.class_name} (${(p.confidence * 100).toFixed(1)}%)  |  ${p.time_start?.toFixed(1)}–${p.time_end?.toFixed(1)}s`;
         dot.addEventListener("click", () => {
             state.startSample = p.start_sample;
+            state.currentStreamWindowIndex = i;
             state.cameFromStream = true;
             document.getElementById("sampleOffset").value = p.start_sample;
             runPrediction();
@@ -296,6 +345,74 @@ function showStreamResults(data) {
 // ═══════════════════════════════════════════
 // FEATURE 1: Beat-to-Beat Confidence Trend
 // ═══════════════════════════════════════════
+function getCurrentStreamWindowIndex() {
+    if (!state.streamResults || state.streamResults.length === 0) return null;
+
+    if (Number.isInteger(state.currentStreamWindowIndex) &&
+        state.currentStreamWindowIndex >= 0 &&
+        state.currentStreamWindowIndex < state.streamResults.length) {
+        return state.currentStreamWindowIndex;
+    }
+
+    const inferredIndex = state.streamResults.findIndex((p) => p.start_sample === state.startSample);
+    return inferredIndex >= 0 ? inferredIndex : null;
+}
+
+function openStreamWindow(index) {
+    if (!state.streamResults || state.streamResults.length === 0) return;
+    if (index < 0 || index >= state.streamResults.length) return;
+
+    const windowData = state.streamResults[index];
+    state.currentStreamWindowIndex = index;
+    state.startSample = windowData.start_sample;
+    state.cameFromStream = true;
+    document.getElementById("sampleOffset").value = windowData.start_sample;
+    runPrediction();
+}
+
+function goToPreviousStreamWindow() {
+    const currentIndex = getCurrentStreamWindowIndex();
+    if (currentIndex === null || currentIndex <= 0) return;
+    openStreamWindow(currentIndex - 1);
+}
+
+function goToNextStreamWindow() {
+    const currentIndex = getCurrentStreamWindowIndex();
+    if (currentIndex === null || currentIndex >= state.streamResults.length - 1) return;
+    openStreamWindow(currentIndex + 1);
+}
+
+function goToFirstStreamWindow() {
+    if (!state.streamResults || state.streamResults.length === 0) return;
+    openStreamWindow(0);
+}
+
+function updateStreamWindowNavigation() {
+    const prevBtn = document.getElementById("btnPrevWindow");
+    const nextBtn = document.getElementById("btnNextWindow");
+    const firstBtn = document.getElementById("btnFirstWindow");
+    const posEl = document.getElementById("streamWindowPosition");
+
+    const total = state.streamResults.length;
+    const currentIndex = getCurrentStreamWindowIndex();
+
+    if (currentIndex === null || total === 0) {
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        firstBtn.disabled = true;
+        posEl.textContent = "Window � / �";
+        return;
+    }
+
+    const isFirst = currentIndex === 0;
+    const isLast = currentIndex === total - 1;
+
+    prevBtn.disabled = isFirst;
+    nextBtn.disabled = isLast;
+    firstBtn.disabled = !isLast;
+    posEl.textContent = `Window ${currentIndex + 1} / ${total}`;
+}
+
 function renderTrendChart(predictions) {
     const ctx = document.getElementById("trendCanvas").getContext("2d");
     if (state.trendChart) state.trendChart.destroy();
@@ -752,11 +869,14 @@ function hideResults() {
     document.getElementById("backToStream").style.display = "none";
     document.getElementById("smartAlertBanner").style.display = "none";
     state.cameFromStream = false;
+    state.currentStreamWindowIndex = null;
+    updateStreamWindowNavigation();
 }
 
 function backToStream() {
     // Return to the stream view using cached results
     state.cameFromStream = false;
+    state.currentStreamWindowIndex = null;
     document.getElementById("resultsContainer").style.display = "none";
     document.getElementById("streamContainer").style.display = "block";
     document.getElementById("alertBanner").style.display = "none";
@@ -1031,21 +1151,31 @@ async function downloadReport() {
     setLoading(true, "Generating Report...");
 
     try {
-        const resp = await apiCall("/api/report", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+        const endpoint = state.uploadSessionId ? "/api/upload/report" : "/api/report";
+        const payload = state.uploadSessionId
+            ? {
+                upload_session_id: state.uploadSessionId,
+                start_sample: state.startSample,
+                noise_level: state.noiseLevel,
+            }
+            : {
                 record_id: state.recordId,
                 start_sample: state.startSample,
                 noise_level: state.noiseLevel,
-            }),
+            };
+
+        const resp = await apiCall(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
         });
 
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `ECG_Report_${state.recordId}.pdf`;
+        const reportLabel = state.uploadSessionId ? (state.uploadSourceName || "uploaded_ecg") : state.recordId;
+        a.download = `ECG_Report_${reportLabel}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
     } catch { /* handled */ }
@@ -1092,10 +1222,10 @@ function handleKeyboardShortcut(e) {
     switch (e.key.toLowerCase()) {
         case " ": // Space — Analyze
             e.preventDefault();
-            if (state.recordId) runPrediction();
+            if (state.recordId || state.uploadSessionId) runPrediction();
             break;
         case "r": // R — Stream
-            if (state.recordId) runStream();
+            if (state.recordId || state.uploadSessionId) runStream();
             break;
         case "d": // D — Download report
             downloadReport();
@@ -1130,3 +1260,4 @@ function handleKeyboardShortcut(e) {
             break;
     }
 }
+

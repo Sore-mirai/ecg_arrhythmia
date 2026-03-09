@@ -198,7 +198,8 @@ body {
 }
 
 .control-group select,
-.control-group input[type="number"] {
+.control-group input[type="number"],
+.control-group input[type="file"] {
     width: 100%;
     padding: 9px 12px;
     background: var(--bg-input);
@@ -216,6 +217,13 @@ body {
     border-color: var(--primary-light);
     box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.12);
     background: #fff;
+}
+
+.upload-status {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
 }
 
 /* ── Slider ── */
@@ -477,6 +485,29 @@ input[type="range"]::-webkit-slider-thumb:hover {
     padding: 8px 18px;
     font-size: 13px;
     gap: 6px;
+}
+
+.stream-nav-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.stream-window-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.stream-window-position {
+    min-width: 110px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-family: "JetBrains Mono", monospace;
 }
 
 /* ══════════════════════════════
@@ -1479,3 +1510,4 @@ input[type="range"]::-webkit-slider-thumb:hover {
         padding: 10px 12px;
     }
 }
+

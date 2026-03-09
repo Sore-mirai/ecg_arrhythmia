@@ -66,6 +66,14 @@
                 </select>
             </div>
 
+
+            <div class="control-group">
+                <label for="ecgUpload">Upload ECG File (.csv, .dat + .hea)</label>
+                <input type="file" id="ecgUpload" accept=".csv,.txt,.dat,.hea" multiple>
+                <button class="btn btn-outline" id="btnUploadECG" style="margin-top:8px; width:100%;">Upload & Use ECG</button>
+                <div id="uploadStatus" class="upload-status">No uploaded ECG in use.</div>
+            </div>
+
             <div id="singleControls">
                 <div class="control-group">
                     <label for="sampleOffset">Start Sample</label>
@@ -210,12 +218,19 @@
 
             <!-- Back to Stream Navigation -->
             <div id="backToStream" class="back-to-stream" style="display:none">
-                <button class="btn btn-outline" id="btnBackToStream">
-                    ← Back to Stream Timeline
-                </button>
+                <div class="stream-nav-row">
+                    <button class="btn btn-outline" id="btnBackToStream">
+                        <- Back to Stream Timeline
+                    </button>
+                    <div class="stream-window-nav">
+                        <button class="btn btn-outline" id="btnPrevWindow"><- Prev Window</button>
+                        <span id="streamWindowPosition" class="stream-window-position">Window - / -</span>
+                        <button class="btn btn-outline" id="btnNextWindow">Next Window -></button>
+                        <button class="btn btn-outline" id="btnFirstWindow">Go to First</button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Stats Row -->
             <div class="stats-row">
                 <div class="stat-card primary">
                     <div class="stat-value" id="statClass">—</div>
@@ -482,3 +497,4 @@
 
 </body>
 </html>
+

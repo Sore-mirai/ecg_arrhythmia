@@ -91,7 +91,8 @@ def generate_pdf_report(prediction_result, record_id="Unknown"):
         Path to the generated PDF file.
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"ECG_Report_{record_id}_{timestamp}.pdf"
+    safe_record_id = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in str(record_id))
+    filename = f"ECG_Report_{safe_record_id}_{timestamp}.pdf"
     pdf_path = os.path.join(REPORT_DIR, filename)
 
     doc = SimpleDocTemplate(
@@ -283,3 +284,4 @@ def generate_pdf_report(prediction_result, record_id="Unknown"):
     # Build PDF
     doc.build(elements)
     return pdf_path
+
