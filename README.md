@@ -18,7 +18,7 @@ architecture with Explainable AI (Grad-CAM) and simulated real-time streaming.
 
 ```
 ecg_project/
-├── data/                     # MIT-BIH Arrhythmia Database files
+├── data/mitdb/              # MIT-BIH Arrhythmia Database files
 ├── app/
 │   ├── config.py             # Configuration & hyperparameters
 │   ├── main.py               # Flask application factory
